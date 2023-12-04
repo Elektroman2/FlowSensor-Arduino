@@ -5,7 +5,8 @@
 [![License](https://img.shields.io/github/license/hafidhh/FlowSensor-Arduino.svg?)](https://github.com/hafidhh/FlowSensor-Arduino/blob/master/LICENSE.md)
 
 ## 🚀 Description   
-Arduino library for Flow Sensor
+Arduino library for Flow Sensor modified by Elektroman
+Based on my observations, these sensors are far away from a linear transfer function, so unable to use a simple constant as pulse/L. I try to improve this lib by adding a logarithmic calculation for flowrate and volume
 
 ### Volume Formula   
 ```math
