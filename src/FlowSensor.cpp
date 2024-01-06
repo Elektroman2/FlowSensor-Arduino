@@ -18,10 +18,20 @@
  * @param type Sensor Type
  * @param pin Interrupt Pin
  */
-FlowSensor::FlowSensor(uint16_t type ,uint8_t pin)
+FlowSensor::FlowSensor(calib_t calib ,uint8_t pin)
 {
+	this->_calib.A=calib.A;
+	this->_calib.B=calib.B;
 	this->_pin = pin;
-	this->_pulse1liter = type;
+	this->_pulse1liter = 100;
+	this->_hzSummaCount=0;
+	this->_hzSumma=0;
+	this->_flowratehour=0;
+	this->_flowrateminute=0;
+	this->_flowratesecound=0;
+	this->_hz=0;
+	this->_volume=0;
+
 }
 
 /**
@@ -45,18 +55,63 @@ void FlowSensor::count()
 	this->_pulse++;
 }
 
+
+void FlowSensor::read()
+{
+	unsigned long now= millis();
+	this->pulseInLastRead= this->_pulse;
+	this->timeElapsed=now-this->_timebefore;
+	this->_timebefore=now;
+}
+
 /**
  * @brief
  * 
  * @param calibration Calibration pulse/liter
  */
-void FlowSensor::read(long calibration)
+void FlowSensor::calculateHz()
 {
-	this->_flowratesecound = (this->_pulse / (this->_pulse1liter + calibration)) / ((millis() - this->_timebefore) / 1000);
-	this->_volume += (this->_pulse / (this->_pulse1liter + calibration));
-	this->_totalpulse += this->_pulse;
+	this->_hz= this->pulseInLastRead /((this->timeElapsed) / 1000.0);
+	this->_hzSumma+=this->_hz;
+	this->_hzSummaCount+=1;
+	if(this->_hz >2)
+		this->_pulse1liter=this->_calib.A*log(this->_hz)+this->_calib.B;
+	else
+		this->_pulse1liter=10;
+}
+
+
+
+void FlowSensor::calculateFlowVolume(long calibration)
+{
+	this->_flowratesecound = (this->pulseInLastRead / (this->_pulse1liter + calibration)) / ((this->timeElapsed) / 1000);
+	this->_volume += (this->pulseInLastRead / (this->_pulse1liter + calibration));
+	this->_totalpulse += this->pulseInLastRead;
 	this->_pulse = 0;
-	this->_timebefore = millis();
+
+}
+
+
+
+
+void FlowSensor::reset()
+{
+	this->_pulse=0;
+	this->_totalpulse=0;
+	this->_volume=0;
+	this->_hzSumma=0;
+	this->_hzSummaCount=0;
+}
+
+
+
+float FlowSensor::getHz()
+{
+	return this->_hz;
+}
+float FlowSensor::getHzAvg()
+{
+	return ((this->_hzSumma)/(this->_hzSummaCount));
 }
 
 /**
@@ -73,6 +128,16 @@ unsigned long FlowSensor::getPulse()
  * @brief Reset pulse count
  * 
  */
+void FlowSensor::setPulseperLiter(unsigned long ppl)
+{
+	this->_pulse1liter=ppl;
+}
+
+unsigned long FlowSensor::getPulseperLiter()
+{
+	return (unsigned long)this->_pulse1liter;
+}
+
 void FlowSensor::resetPulse()
 {
 	this->_pulse=0;
